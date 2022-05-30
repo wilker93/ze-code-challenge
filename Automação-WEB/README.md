@@ -15,7 +15,9 @@ delivery.  Abaixo estão listadas as tecnologias utilizadas na aplicação dos t
         ├── kw_tela_login.robot                 # Classe que contém as ações e elementos da tela de login.
       ├── steps                                 # Pasta que contém steps do projeto.
         ├── cadastro_usuario_resources.robot    # Classe que contem os resources do projeto.
-      ├── base.robot                            # Arquivo que contém importações e bibliotecas do projeto.
+      ├── commons.robot                         # Arquivo que contém importações e bibliotecas do projeto.
+    ├── tests                                   # Pasta que contém os testes do projeto.
+      ├── cadastro_usuario_tests.robot          # Classe que contem os testes do projeto.
     ├── README.md                               # Documento do projeto.
     └── requirements.txt                        # Dependências do projeto.
     └── Makefile                                # Arquivo para automatizar o processo de execução.
