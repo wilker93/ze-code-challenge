@@ -1,5 +1,5 @@
 ## Aplicação Web:
-    A seguir temos 4 fluxos que notei importantíssimos para o bom funcionamento do sistema. Quando um novo usuário acessa o sistema ele tem que passar obrigatoriamente por esses fluxos, o que os torna fundamentais para que novos clientes se tornem clientes recorrentes da plataforma.
+A seguir temos 4 fluxos que notei importantíssimos para o bom funcionamento do sistema. Quando um novo usuário acessa o sistema ele tem que passar obrigatoriamente por esses fluxos, o que os torna fundamentais para que novos clientes se tornem clientes recorrentes da plataforma.
 
 **Cadastrar usuário** - O fluxo de cadastro de usuário  é essencial para capitação de novos clientes, o mesmo deve ser sempre funcional, rápido e prático para o cliente não desistir do cadastro no meio.
 
