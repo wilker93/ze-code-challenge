@@ -1,4 +1,4 @@
-  ## Aplicação Web:
+<b> Aplicação Web:</b>
 
 A seguir temos 4 fluxos que notei importantíssimos para o bom funcionamento do sistema. Quando um novo usuário acessa o sistema ele tem que passar obrigatoriamente por esses fluxos, o que os torna fundamentais para que novos clientes se tornem clientes recorrentes da plataforma.
 
