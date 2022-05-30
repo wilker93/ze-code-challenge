@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 5.0.1 (Python 3.8.10 on linux)" generated="20220530 15:55:37.043" rpa="false" schemaversion="3">
+<suite id="s1" name="Cadastro Usuario Tests" source="/home/wilkeroliveira/Área de Trabalho/ze-code-challenge/Automação-WEB/tests/cadastro_usuario_tests.robot">
+<test id="s1-t1" name="Caso de Teste 01 - Cadastro de usuário" line="9">
+<kw name="Abrir o navegador" library="config" type="SETUP">
+<kw name="Open Browser" library="SeleniumLibrary">
+<arg>browser=${BROWSER}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<msg timestamp="20220530 15:55:37.272" level="INFO">Opening browser 'chrome' to base url 'None'.</msg>
+<status status="PASS" starttime="20220530 15:55:37.272" endtime="20220530 15:55:37.992"/>
+</kw>
+<kw name="Maximize Browser Window" library="SeleniumLibrary">
+<doc>Maximizes current browser window.</doc>
+<status status="PASS" starttime="20220530 15:55:37.993" endtime="20220530 15:55:38.126"/>
+</kw>
+<status status="PASS" starttime="20220530 15:55:37.271" endtime="20220530 15:55:38.127"/>
+</kw>
+<kw name="Dado que estou na tela de login do Zé delivery" library="cadastro_usuario_resources">
+<kw name="Ir para pagina do Ze" library="config">
+<kw name="Go To" library="SeleniumLibrary">
+<arg>url=${URl}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<msg timestamp="20220530 15:55:38.127" level="INFO">Opening url 'https://www.ze.delivery/conta/entrar'</msg>
+<status status="PASS" starttime="20220530 15:55:38.127" endtime="20220530 15:56:01.628"/>
+</kw>
+<status status="PASS" starttime="20220530 15:55:38.127" endtime="20220530 15:56:01.628"/>
+</kw>
+<status status="PASS" starttime="20220530 15:55:38.127" endtime="20220530 15:56:01.628"/>
+</kw>
+<kw name="Quando acessar a opção para cadastro de cliente" library="cadastro_usuario_resources">
+<kw name="Quero cadastrar uma conta no Ze" library="kw_tela_login">
+<kw name="Click Element" library="SeleniumLibrary">
+<arg>${BTN_CRIAR_CONTA}</arg>
+<doc>Click the element identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:01.629" level="INFO">Clicking element 'id=create-account-link'.</msg>
+<status status="PASS" starttime="20220530 15:56:01.629" endtime="20220530 15:56:01.667"/>
+</kw>
+<kw name="Wait Until Page Contains" library="SeleniumLibrary">
+<arg>${TITLE_CRIAR_CONTA}</arg>
+<doc>Waits until ``text`` appears on the current page.</doc>
+<status status="PASS" starttime="20220530 15:56:01.667" endtime="20220530 15:56:03.597"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:01.629" endtime="20220530 15:56:03.597"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:01.629" endtime="20220530 15:56:03.597"/>
+</kw>
+<kw name="E preencho o formulario de cadastro" library="cadastro_usuario_resources">
+<kw name="First Name" library="FakerLibrary">
+<var>${FIRSTNAMEFAKE}</var>
+<msg timestamp="20220530 15:56:03.599" level="INFO">${FIRSTNAMEFAKE} = Francisco</msg>
+<status status="PASS" starttime="20220530 15:56:03.598" endtime="20220530 15:56:03.599"/>
+</kw>
+<kw name="Last Name" library="FakerLibrary">
+<var>${LASTNAMEFAKE}</var>
+<msg timestamp="20220530 15:56:03.599" level="INFO">${LASTNAMEFAKE} = Farias</msg>
+<status status="PASS" starttime="20220530 15:56:03.599" endtime="20220530 15:56:03.600"/>
+</kw>
+<kw name="Email" library="FakerLibrary">
+<var>${MAILFAKE}</var>
+<msg timestamp="20220530 15:56:03.600" level="INFO">${MAILFAKE} = levi67@example.net</msg>
+<status status="PASS" starttime="20220530 15:56:03.600" endtime="20220530 15:56:03.600"/>
+</kw>
+<kw name="Cpf" library="FakerLibrary">
+<var>${CPFFAKE}</var>
+<msg timestamp="20220530 15:56:03.601" level="INFO">${CPFFAKE} = 783.245.690-65</msg>
+<status status="PASS" starttime="20220530 15:56:03.601" endtime="20220530 15:56:03.601"/>
+</kw>
+<kw name="Random Number" library="FakerLibrary">
+<var>${PHONEFAKE}</var>
+<arg>digits=8</arg>
+<arg>fix_len=8</arg>
+<doc>Generate a random integer according to the following rules:</doc>
+<msg timestamp="20220530 15:56:03.602" level="INFO">${PHONEFAKE} = 14675279</msg>
+<status status="PASS" starttime="20220530 15:56:03.601" endtime="20220530 15:56:03.602"/>
+</kw>
+<kw name="Catenate" library="BuiltIn">
+<var>${phoneNumber}</var>
+<arg>${DIGITFAKE}${PHONEFAKE}</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<msg timestamp="20220530 15:56:03.603" level="INFO">${phoneNumber} = 61914675279</msg>
+<status status="PASS" starttime="20220530 15:56:03.602" endtime="20220530 15:56:03.603"/>
+</kw>
+<kw name="Catenate" library="BuiltIn">
+<var>${nomeCliente}</var>
+<arg>${FIRSTNAMEFAKE} ${LASTNAMEFAKE}</arg>
+<doc>Catenates the given items together and returns the resulted string.</doc>
+<msg timestamp="20220530 15:56:03.604" level="INFO">${nomeCliente} = Francisco Farias</msg>
+<status status="PASS" starttime="20220530 15:56:03.603" endtime="20220530 15:56:03.604"/>
+</kw>
+<kw name="Preencher formulario de cadastro de cliente" library="kw_tela_cadastro">
+<arg>${nomeCliente}</arg>
+<arg>${MAILFAKE}</arg>
+<arg>${PASSWORD}</arg>
+<arg>${CPFFAKE}</arg>
+<arg>${phoneNumber}</arg>
+<arg>${AGE}</arg>
+<kw name="Wait Until Element Is Not Visible" library="SeleniumLibrary">
+<arg>${BTN_CRIAR_CONTA}</arg>
+<doc>Waits until the element ``locator`` is not visible.</doc>
+<status status="PASS" starttime="20220530 15:56:03.605" endtime="20220530 15:56:03.619"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>${INPUT_NAME}</arg>
+<arg>${nome}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:03.620" level="INFO">Typing text 'Francisco Farias' into text field 'id=signup-form-input-name'.</msg>
+<status status="PASS" starttime="20220530 15:56:03.619" endtime="20220530 15:56:03.757"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>${INPUT_EMAIL}</arg>
+<arg>${email}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:03.758" level="INFO">Typing text 'levi67@example.net' into text field 'id=signup-form-input-email'.</msg>
+<status status="PASS" starttime="20220530 15:56:03.757" endtime="20220530 15:56:03.864"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>${INPUT_PASSWORD}</arg>
+<arg>${pass}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:03.865" level="INFO">Typing text '@Challenge123' into text field 'id=signup-form-input-password'.</msg>
+<status status="PASS" starttime="20220530 15:56:03.865" endtime="20220530 15:56:03.967"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>${INPUT_DOCUMENT}</arg>
+<arg>${document}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:03.967" level="INFO">Typing text '783.245.690-65' into text field 'id=signup-form-input-document'.</msg>
+<status status="PASS" starttime="20220530 15:56:03.967" endtime="20220530 15:56:04.055"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>${INPUT_PHONE}</arg>
+<arg>${phone}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:04.056" level="INFO">Typing text '61914675279' into text field 'id=signup-form-input-phone'.</msg>
+<status status="PASS" starttime="20220530 15:56:04.055" endtime="20220530 15:56:04.134"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>${INPUT_AGE}</arg>
+<arg>${idade}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:04.135" level="INFO">Typing text '12122000' into text field 'id=signup-form-input-age'.</msg>
+<status status="PASS" starttime="20220530 15:56:04.135" endtime="20220530 15:56:04.223"/>
+</kw>
+<kw name="Realizar scroll da pagina" library="config">
+<kw name="Execute Javascript" library="SeleniumLibrary">
+<arg>window.scrollTo(100, document.body.scrollHeight)</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<msg timestamp="20220530 15:56:04.224" level="INFO">Executing JavaScript:
+window.scrollTo(100, document.body.scrollHeight)
+Without any arguments.</msg>
+<status status="PASS" starttime="20220530 15:56:04.224" endtime="20220530 15:56:04.228"/>
+</kw>
+<kw name="Execute Javascript" library="SeleniumLibrary">
+<arg>window.scrollTo(100, document.body.scrollHeight)</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<msg timestamp="20220530 15:56:04.228" level="INFO">Executing JavaScript:
+window.scrollTo(100, document.body.scrollHeight)
+Without any arguments.</msg>
+<status status="PASS" starttime="20220530 15:56:04.228" endtime="20220530 15:56:04.230"/>
+</kw>
+<kw name="Sleep" library="BuiltIn">
+<arg>1</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<msg timestamp="20220530 15:56:05.231" level="INFO">Slept 1 second</msg>
+<status status="PASS" starttime="20220530 15:56:04.230" endtime="20220530 15:56:05.231"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:04.223" endtime="20220530 15:56:05.232"/>
+</kw>
+<kw name="Select Checkbox" library="SeleniumLibrary">
+<arg>${CHECKBOX_TERMS}</arg>
+<doc>Selects the checkbox identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:05.233" level="INFO">Selecting checkbox 'id=sign-up-form-input-terms'.</msg>
+<status status="PASS" starttime="20220530 15:56:05.232" endtime="20220530 15:56:05.308"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:03.604" endtime="20220530 15:56:05.308"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:03.598" endtime="20220530 15:56:05.308"/>
+</kw>
+<kw name="E confirmar o envio do formulário" library="cadastro_usuario_resources">
+<kw name="Confirmar cadastro de usuario" library="kw_tela_cadastro">
+<kw name="Click Button" library="SeleniumLibrary">
+<arg>${BTN_SIGNUP}</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<msg timestamp="20220530 15:56:05.309" level="INFO">Clicking button 'id=signup-form-button-signup'.</msg>
+<status status="PASS" starttime="20220530 15:56:05.309" endtime="20220530 15:56:05.368"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:05.309" endtime="20220530 15:56:05.368"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:05.308" endtime="20220530 15:56:05.368"/>
+</kw>
+<kw name="E acionar opção para validar o celular depois" library="cadastro_usuario_resources">
+<kw name="Pular validacao de celular" library="kw_tela_cadastro">
+<kw name="Wait Until Element Is Visible" library="SeleniumLibrary">
+<arg>${BTN_VALIDATE_CEL}</arg>
+<arg>30</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<msg timestamp="20220530 15:56:35.528" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="selenium-screenshot-54.png"&gt;&lt;img src="selenium-screenshot-54.png" width="800px"&gt;&lt;/a&gt;</msg>
+<msg timestamp="20220530 15:56:35.528" level="FAIL">Element 'id=confirm-phone-link-validate-later' not visible after 30 seconds.</msg>
+<status status="FAIL" starttime="20220530 15:56:05.369" endtime="20220530 15:56:35.529"/>
+</kw>
+<kw name="Realizar scroll da pagina" library="config">
+<status status="NOT RUN" starttime="20220530 15:56:35.529" endtime="20220530 15:56:35.529"/>
+</kw>
+<kw name="Click Element" library="SeleniumLibrary">
+<arg>${BTN_VALIDATE_CEL}</arg>
+<doc>Click the element identified by ``locator``.</doc>
+<status status="NOT RUN" starttime="20220530 15:56:35.529" endtime="20220530 15:56:35.529"/>
+</kw>
+<status status="FAIL" starttime="20220530 15:56:05.369" endtime="20220530 15:56:35.529"/>
+</kw>
+<status status="FAIL" starttime="20220530 15:56:05.368" endtime="20220530 15:56:35.529"/>
+</kw>
+<kw name="Então é apresentada a tela inicial do Zé Delivery" library="cadastro_usuario_resources">
+<status status="NOT RUN" starttime="20220530 15:56:35.530" endtime="20220530 15:56:35.530"/>
+</kw>
+<kw name="Fechar o navegador" library="config" type="TEARDOWN">
+<kw name="Close Browser" library="SeleniumLibrary">
+<doc>Closes the current browser.</doc>
+<status status="PASS" starttime="20220530 15:56:35.530" endtime="20220530 15:56:35.591"/>
+</kw>
+<status status="PASS" starttime="20220530 15:56:35.530" endtime="20220530 15:56:35.591"/>
+</kw>
+<doc>Caso de teste para validar o cadastro de um novo usuário.</doc>
+<tag>cadastro</tag>
+<tag>positivo</tag>
+<status status="FAIL" starttime="20220530 15:55:37.271" endtime="20220530 15:56:35.592">Element 'id=confirm-phone-link-validate-later' not visible after 30 seconds.</status>
+</test>
+<doc>Suite de testes para cadastro de usuário.</doc>
+<status status="FAIL" starttime="20220530 15:55:37.044" endtime="20220530 15:56:35.592"/>
+</suite>
+<statistics>
+<total>
+<stat pass="0" fail="1" skip="0">All Tests</stat>
+</total>
+<tag>
+<stat pass="0" fail="1" skip="0">cadastro</stat>
+<stat pass="0" fail="1" skip="0">positivo</stat>
+</tag>
+<suite>
+<stat pass="0" fail="1" skip="0" id="s1" name="Cadastro Usuario Tests">Cadastro Usuario Tests</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

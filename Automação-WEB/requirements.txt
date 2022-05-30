@@ -1,0 +1,3 @@
+robotframework==5.0.1
+robotframework-faker
+robotframework-selenium2library

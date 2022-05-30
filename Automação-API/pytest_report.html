@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++)
+        filterItems[i].hidden = false;
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>pytest_report.html</h1>
+    <p>Report generated on 30-May-2022 at 10:57:54 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "1.0.0", "py": "1.11.0", "pytest": "7.1.2"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>Linux-5.13.0-44-generic-x86_64-with-glibc2.29</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"anyio": "3.6.1", "html": "3.1.1", "lazy-fixture": "0.6.3", "metadata": "2.0.1"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.8.10</td></tr></table>
+    <h2>Summary</h2>
+    <p>14 tests ran in 15.89 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">14 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_open_weather_map[connection]</td>
+          <td class="col-duration">1.26</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;coord&#x27;: {&#x27;lon&#x27;: -47.9297, &#x27;lat&#x27;: -15.7797}, &#x27;weather&#x27;: [{&#x27;id&#x27;: 800, &#x27;main&#x27;: &#x27;Clear&#x27;, &#x27;description&#x27;: &#x27;clear sky&#x27;, &#x27;icon&#x27;: &#x27;01d&#x27;}], &#x27;base&#x27;: &#x27;stations&#x27;, &#x27;main&#x27;: {&#x27;temp&#x27;: 298.66, &#x27;feels_like&#x27;: 298.21, &#x27;temp_min&#x27;: 298.66, &#x27;temp_max&#x27;: 299.05, &#x27;pressure&#x27;: 1021, &#x27;humidity&#x27;: 36}, &#x27;visibility&#x27;: 10000, &#x27;wind&#x27;: {&#x27;speed&#x27;: 1.03, &#x27;deg&#x27;: 100}, &#x27;clouds&#x27;: {&#x27;all&#x27;: 0}, &#x27;dt&#x27;: 1653918968, &#x27;sys&#x27;: {&#x27;type&#x27;: 1, &#x27;id&#x27;: 8336, &#x27;country&#x27;: &#x27;BR&#x27;, &#x27;sunrise&#x27;: 1653903098, &#x27;sunset&#x27;: 1653943634}, &#x27;timezone&#x27;: -10800, &#x27;id&#x27;: 3469058, &#x27;name&#x27;: &#x27;Brasília&#x27;, &#x27;cod&#x27;: 200}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_open_weather_map_units_metric[connection]</td>
+          <td class="col-duration">1.16</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;coord&#x27;: {&#x27;lon&#x27;: -47.9297, &#x27;lat&#x27;: -15.7797}, &#x27;weather&#x27;: [{&#x27;id&#x27;: 800, &#x27;main&#x27;: &#x27;Clear&#x27;, &#x27;description&#x27;: &#x27;clear sky&#x27;, &#x27;icon&#x27;: &#x27;01d&#x27;}], &#x27;base&#x27;: &#x27;stations&#x27;, &#x27;main&#x27;: {&#x27;temp&#x27;: 25.51, &#x27;feels_like&#x27;: 25.06, &#x27;temp_min&#x27;: 25.51, &#x27;temp_max&#x27;: 25.9, &#x27;pressure&#x27;: 1021, &#x27;humidity&#x27;: 36}, &#x27;visibility&#x27;: 10000, &#x27;wind&#x27;: {&#x27;speed&#x27;: 1.03, &#x27;deg&#x27;: 100}, &#x27;clouds&#x27;: {&#x27;all&#x27;: 0}, &#x27;dt&#x27;: 1653918905, &#x27;sys&#x27;: {&#x27;type&#x27;: 1, &#x27;id&#x27;: 8336, &#x27;country&#x27;: &#x27;BR&#x27;, &#x27;sunrise&#x27;: 1653903098, &#x27;sunset&#x27;: 1653943634}, &#x27;timezone&#x27;: -10800, &#x27;id&#x27;: 3469058, &#x27;name&#x27;: &#x27;Brasília&#x27;, &#x27;cod&#x27;: 200}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_open_weather_map_units_imperial[connection]</td>
+          <td class="col-duration">1.13</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;coord&#x27;: {&#x27;lon&#x27;: -47.9297, &#x27;lat&#x27;: -15.7797}, &#x27;weather&#x27;: [{&#x27;id&#x27;: 800, &#x27;main&#x27;: &#x27;Clear&#x27;, &#x27;description&#x27;: &#x27;clear sky&#x27;, &#x27;icon&#x27;: &#x27;01d&#x27;}], &#x27;base&#x27;: &#x27;stations&#x27;, &#x27;main&#x27;: {&#x27;temp&#x27;: 77.92, &#x27;feels_like&#x27;: 77.11, &#x27;temp_min&#x27;: 77.92, &#x27;temp_max&#x27;: 78.62, &#x27;pressure&#x27;: 1021, &#x27;humidity&#x27;: 36}, &#x27;visibility&#x27;: 10000, &#x27;wind&#x27;: {&#x27;speed&#x27;: 2.3, &#x27;deg&#x27;: 100}, &#x27;clouds&#x27;: {&#x27;all&#x27;: 0}, &#x27;dt&#x27;: 1653918817, &#x27;sys&#x27;: {&#x27;type&#x27;: 1, &#x27;id&#x27;: 8336, &#x27;country&#x27;: &#x27;BR&#x27;, &#x27;sunrise&#x27;: 1653903098, &#x27;sunset&#x27;: 1653943634}, &#x27;timezone&#x27;: -10800, &#x27;id&#x27;: 3469058, &#x27;name&#x27;: &#x27;Brasília&#x27;, &#x27;cod&#x27;: 200}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_open_weather_map_lang_pt_br[connection]</td>
+          <td class="col-duration">1.12</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;coord&#x27;: {&#x27;lon&#x27;: -47.9297, &#x27;lat&#x27;: -15.7797}, &#x27;weather&#x27;: [{&#x27;id&#x27;: 800, &#x27;main&#x27;: &#x27;Clear&#x27;, &#x27;description&#x27;: &#x27;céu limpo&#x27;, &#x27;icon&#x27;: &#x27;01d&#x27;}], &#x27;base&#x27;: &#x27;stations&#x27;, &#x27;main&#x27;: {&#x27;temp&#x27;: 298.66, &#x27;feels_like&#x27;: 298.21, &#x27;temp_min&#x27;: 298.66, &#x27;temp_max&#x27;: 299.05, &#x27;pressure&#x27;: 1021, &#x27;humidity&#x27;: 36}, &#x27;visibility&#x27;: 10000, &#x27;wind&#x27;: {&#x27;speed&#x27;: 1.03, &#x27;deg&#x27;: 100}, &#x27;clouds&#x27;: {&#x27;all&#x27;: 0}, &#x27;dt&#x27;: 1653918905, &#x27;sys&#x27;: {&#x27;type&#x27;: 1, &#x27;id&#x27;: 8336, &#x27;country&#x27;: &#x27;BR&#x27;, &#x27;sunrise&#x27;: 1653903098, &#x27;sunset&#x27;: 1653943634}, &#x27;timezone&#x27;: -10800, &#x27;id&#x27;: 3469058, &#x27;name&#x27;: &#x27;Brasília&#x27;, &#x27;cod&#x27;: 200}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_by_city_name[connection]</td>
+          <td class="col-duration">1.02</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;coord&#x27;: {&#x27;lon&#x27;: -47.9297, &#x27;lat&#x27;: -15.7797}, &#x27;weather&#x27;: [{&#x27;id&#x27;: 800, &#x27;main&#x27;: &#x27;Clear&#x27;, &#x27;description&#x27;: &#x27;clear sky&#x27;, &#x27;icon&#x27;: &#x27;01d&#x27;}], &#x27;base&#x27;: &#x27;stations&#x27;, &#x27;main&#x27;: {&#x27;temp&#x27;: 298.66, &#x27;feels_like&#x27;: 298.21, &#x27;temp_min&#x27;: 298.66, &#x27;temp_max&#x27;: 299.05, &#x27;pressure&#x27;: 1021, &#x27;humidity&#x27;: 36}, &#x27;visibility&#x27;: 10000, &#x27;wind&#x27;: {&#x27;speed&#x27;: 1.03, &#x27;deg&#x27;: 100}, &#x27;clouds&#x27;: {&#x27;all&#x27;: 0}, &#x27;dt&#x27;: 1653918968, &#x27;sys&#x27;: {&#x27;type&#x27;: 1, &#x27;id&#x27;: 8336, &#x27;country&#x27;: &#x27;BR&#x27;, &#x27;sunrise&#x27;: 1653903098, &#x27;sunset&#x27;: 1653943634}, &#x27;timezone&#x27;: -10800, &#x27;id&#x27;: 3469058, &#x27;name&#x27;: &#x27;Brasília&#x27;, &#x27;cod&#x27;: 200}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_by_city_name_and_country_code[connection]</td>
+          <td class="col-duration">1.07</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;coord&#x27;: {&#x27;lon&#x27;: -47.9297, &#x27;lat&#x27;: -15.7797}, &#x27;weather&#x27;: [{&#x27;id&#x27;: 800, &#x27;main&#x27;: &#x27;Clear&#x27;, &#x27;description&#x27;: &#x27;clear sky&#x27;, &#x27;icon&#x27;: &#x27;01d&#x27;}], &#x27;base&#x27;: &#x27;stations&#x27;, &#x27;main&#x27;: {&#x27;temp&#x27;: 298.66, &#x27;feels_like&#x27;: 298.21, &#x27;temp_min&#x27;: 298.66, &#x27;temp_max&#x27;: 299.05, &#x27;pressure&#x27;: 1021, &#x27;humidity&#x27;: 36}, &#x27;visibility&#x27;: 10000, &#x27;wind&#x27;: {&#x27;speed&#x27;: 1.03, &#x27;deg&#x27;: 100}, &#x27;clouds&#x27;: {&#x27;all&#x27;: 0}, &#x27;dt&#x27;: 1653918910, &#x27;sys&#x27;: {&#x27;type&#x27;: 1, &#x27;id&#x27;: 8336, &#x27;country&#x27;: &#x27;BR&#x27;, &#x27;sunrise&#x27;: 1653903098, &#x27;sunset&#x27;: 1653943634}, &#x27;timezone&#x27;: -10800, &#x27;id&#x27;: 3469058, &#x27;name&#x27;: &#x27;Brasília&#x27;, &#x27;cod&#x27;: 200}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_by_city_id[connection]</td>
+          <td class="col-duration">1.12</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;coord&#x27;: {&#x27;lon&#x27;: -47.9297, &#x27;lat&#x27;: -15.7797}, &#x27;weather&#x27;: [{&#x27;id&#x27;: 800, &#x27;main&#x27;: &#x27;Clear&#x27;, &#x27;description&#x27;: &#x27;clear sky&#x27;, &#x27;icon&#x27;: &#x27;01d&#x27;}], &#x27;base&#x27;: &#x27;stations&#x27;, &#x27;main&#x27;: {&#x27;temp&#x27;: 298.66, &#x27;feels_like&#x27;: 298.21, &#x27;temp_min&#x27;: 298.66, &#x27;temp_max&#x27;: 299.05, &#x27;pressure&#x27;: 1021, &#x27;humidity&#x27;: 36}, &#x27;visibility&#x27;: 10000, &#x27;wind&#x27;: {&#x27;speed&#x27;: 1.03, &#x27;deg&#x27;: 100}, &#x27;clouds&#x27;: {&#x27;all&#x27;: 0}, &#x27;dt&#x27;: 1653918817, &#x27;sys&#x27;: {&#x27;type&#x27;: 1, &#x27;id&#x27;: 8336, &#x27;country&#x27;: &#x27;BR&#x27;, &#x27;sunrise&#x27;: 1653903098, &#x27;sunset&#x27;: 1653943634}, &#x27;timezone&#x27;: -10800, &#x27;id&#x27;: 3469058, &#x27;name&#x27;: &#x27;Brasília&#x27;, &#x27;cod&#x27;: 200}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_wrong_latitude[connection]</td>
+          <td class="col-duration">1.15</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;cod&#x27;: &#x27;400&#x27;, &#x27;message&#x27;: &#x27;wrong latitude&#x27;}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_wrong_longitude[connection]</td>
+          <td class="col-duration">1.19</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;cod&#x27;: &#x27;400&#x27;, &#x27;message&#x27;: &#x27;wrong longitude&#x27;}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_wrong_key[connection]</td>
+          <td class="col-duration">1.11</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;cod&#x27;: 401, &#x27;message&#x27;: &#x27;Invalid API key. Please see http://openweathermap.org/faq#error401 for more info.&#x27;}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_wrong_city[connection]</td>
+          <td class="col-duration">1.05</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;cod&#x27;: &#x27;404&#x27;, &#x27;message&#x27;: &#x27;city not found&#x27;}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_city_not_found_in_country_code[connection]</td>
+          <td class="col-duration">1.08</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;cod&#x27;: &#x27;404&#x27;, &#x27;message&#x27;: &#x27;city not found&#x27;}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_by_city_id_not_found[connection]</td>
+          <td class="col-duration">1.25</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;cod&#x27;: &#x27;404&#x27;, &#x27;message&#x27;: &#x27;city not found&#x27;}
+PASSED
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_openweathermap.py::TestOpenWeatherMap::test_post_by_wrong_city_id[connection]</td>
+          <td class="col-duration">1.02</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>{&#x27;cod&#x27;: &#x27;400&#x27;, &#x27;message&#x27;: &#x27;ABC is not a city ID&#x27;}
+PASSED
+<br/></div></td></tr></tbody></table></body></html>

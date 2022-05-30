@@ -1,0 +1,5 @@
+pytest
+httpx
+pytest-lazy-fixture
+pytest-html
+pre-commit
