@@ -42,7 +42,6 @@ Validar boas vindas usuario
     [Arguments]  ${user}
     Wait Until Element Is Visible  ${HEADER}
     Click element  ${HEADER}
-    Sleep   5
     Element Text Should Be  ${USER_WELCOME}  ${user}
 
 Validar mensagem de alerta do campo nome
