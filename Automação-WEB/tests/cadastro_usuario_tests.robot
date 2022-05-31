@@ -9,12 +9,23 @@ Test Teardown   Fechar o navegador
 Caso de Teste 01 - Cadastro de usuário
     [Documentation]     Caso de teste para validar o cadastro de um novo usuário.
     [Tags]              cadastro    positivo
+    ${AGE}          set variable  12122000
+    ${PASSWORD}     set variable  @Challenge123
+    ${DIGITFAKE}    set variable  619
+    ${FIRSTNAMEFAKE}       FakerLibrary.First Name
+    ${LASTNAMEFAKE}        FakerLibrary.Last Name
+    ${MAILFAKE}            FakerLibrary.Email
+    ${CPFFAKE}             FakerLibrary.cpf
+    ${PHONEFAKE}           FakerLibrary.Random Number   digits=8    fix_len=8
+    ${phoneNumber}  Catenate  ${DIGITFAKE}${PHONEFAKE}
+    ${nomeCliente}  Catenate  ${FIRSTNAMEFAKE} ${LASTNAMEFAKE}
+
     Dado que estou na tela de login do Zé delivery
     Quando acessar a opção para cadastro de cliente
-    E preencho o formulario de cadastro
+    E preencho o formulario de cadastro  ${nomeCliente}  ${MAILFAKE}  ${PASSWORD}  ${CPFFAKE}  ${phoneNumber}  ${AGE}
     E confirmar o envio do formulário
     E acionar opção para validar o celular depois
-    Então é apresentada a tela inicial do Zé Delivery
+    Então é apresentada a tela inicial do Zé Delivery  ${nomeCliente}
 
 Caso de Teste 02 - Cadastro de usuário - Nome do cliente não informado
     [Documentation]     Caso de teste para validar o comportamento do sistema quando o nome do cliente não for informado.

@@ -1,5 +1,3 @@
-*** Settings ***
-Library    SeleniumLibrary
 *** Variables ***
 ${INPUT_NAME}           id=signup-form-input-name
 ${INPUT_EMAIL}          id=signup-form-input-email
@@ -16,9 +14,8 @@ ${MSG_PASS_ALERT}       id=signup-form-input-password-error-message
 ${MSG_DOC_ALERT}        id=signup-form-input-document-error-message
 ${MSG_PHONE_ALERT}      id=signup-form-input-phone-error-message
 ${MSG_DATA_ALERT}       id=signup-form-input-age-error-message
-${TITLE}                //title[contains(.,'Zé Delivery: Entrega de bebidas geladas a preço baixo')]
-${ZE_LOGO}         id=ze-delivery-logo
-
+${USER_WELCOME}         class=css-3p9cbf
+${HEADER}               id=header-user-badge
 
 *** Keywords ***
 Preencher formulario de cadastro de cliente
@@ -37,35 +34,38 @@ Confirmar cadastro de usuario
     Click Button    ${BTN_SIGNUP}
 
 Pular validacao de celular
-    Wait Until Element Is Visible     ${BTN_VALIDATE_CEL}       30
+    Wait Until Element Is Visible     ${BTN_VALIDATE_CEL}       10
     Realizar scroll da pagina
     Click Element       ${BTN_VALIDATE_CEL}
 
-Validar tela inicial
-    Wait Until Page Contains Element        ${ZE_LOGO}     30
-    Click Element    address-search-input-address
+Validar boas vindas usuario
+    [Arguments]  ${user}
+    Wait Until Element Is Visible  ${HEADER}
+    Click element  ${HEADER}
+    Sleep   5
+    Element Text Should Be  ${USER_WELCOME}  ${user}
 
 Validar mensagem de alerta do campo nome
     [Arguments]  ${msg_alert}
-    Page Should Contain Element  ${MSG_NAME_ALERT}  ${msg_alert}
+    Element Text Should Be  ${MSG_NAME_ALERT}  ${msg_alert}
 
 Validar mensagem de alerta do campo email
     [Arguments]  ${msg_alert}
-    Page Should Contain Element  ${MSG_EMAIL_ALERT}  ${msg_alert}
+    Element Text Should Be  ${MSG_EMAIL_ALERT}  ${msg_alert}
 
 Validar mensagem de alerta do campo password
     [Arguments]  ${msg_alert}
-    Page Should Contain Element  ${MSG_PASS_ALERT}  ${msg_alert}
+    Element Text Should Be  ${MSG_PASS_ALERT}  ${msg_alert}
 
 Validar mensagem de alerta do campo cpf
     [Arguments]  ${msg_alert}
-    Page Should Contain Element  ${MSG_DOC_ALERT}  ${msg_alert}
+    Element Text Should Be  ${MSG_DOC_ALERT}  ${msg_alert}
 
 Validar mensagem de alerta do campo telefone
     [Arguments]  ${msg_alert}
-    Page Should Contain Element  ${MSG_PHONE_ALERT}  ${msg_alert}
+    Element Text Should Be  ${MSG_PHONE_ALERT}  ${msg_alert}
 
 Validar mensagem de alerta do campo data
     [Arguments]  ${msg_alert}
-    Page Should Contain Element  ${MSG_DATA_ALERT}  ${msg_alert}
+    Element Text Should Be  ${MSG_DATA_ALERT}  ${msg_alert}
 
