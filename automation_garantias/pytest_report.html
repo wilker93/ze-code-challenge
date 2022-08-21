@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++)
+        filterItems[i].hidden = false;
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>pytest_report.html</h1>
+    <p>Report generated on 30-Jan-2022 at 23:33:41 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "1.0.0", "py": "1.11.0", "pytest": "6.2.5"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>Linux-5.13.0-27-generic-x86_64-with-glibc2.29</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"anyio": "3.4.0", "html": "3.1.1", "lazy-fixture": "0.6.3", "metadata": "1.11.0"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.8.10</td></tr></table>
+    <h2>Summary</h2>
+    <p>67 tests ran in 85.85 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">56 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">11 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts.py::TestSimulationFGTS::test_post_debt_fgts_cdi_perc[administrator_header]</td>
+          <td class="col-duration">1.54</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.FGTS.test_debt_fgts.TestSimulationFGTS object at 0x7f305b66b4f0&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/lego-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;ba99b7f1-3db6-4a63-a386-ba2c7f31e784&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_debt_fgts_cdi_perc = {&#x27;borrower&#x27;: {&#x27;address&#x27;: {&#x27;city&#x27;: &#x27;Ananindeua&#x27;, &#x27;complement&#x27;: &#x27;complemento&#x27;, &#x27;neighborhood&#x27;: &#x27;Águas Lindas&#x27;, &#x27;number&#x27;:...8-09&#x27;, &#x27;total_amount&#x27;: 400}, {&#x27;due_date&#x27;: &#x27;2023-08-09&#x27;, &#x27;total_amount&#x27;: 350}], &#x27;disbursement_date&#x27;: &#x27;2022-07-11&#x27;, ...}}<br/><br/>    def test_post_debt_fgts_cdi_perc(self, url, headers, payload_debt_fgts_cdi_perc):<br/>        endpoint = f&quot;{url}/debt_fgts&quot;<br/>        response = httpx.post(url=endpoint, headers=headers, json=payload_debt_fgts_cdi_perc, timeout=500)<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 201:<br/>            assert response.status_code == 201 and response_dict[&quot;status&quot;] == &quot;waiting_signature&quot;<br/>            print(&quot;\n Número do documento: &quot; + response_dict[&quot;data&quot;][&quot;borrower&quot;][&quot;document_number&quot;])<br/>            print(&quot;\n Nome do Cliente: &quot; + response_dict[&quot;data&quot;][&quot;borrower&quot;][&quot;name&quot;])<br/>            print(&quot;\n Data: &quot; + response_dict[&quot;event_datetime&quot;])<br/>            print(&quot;\n Chave: &quot; + response_dict[&quot;key&quot;])<br/>            print(&quot;\n Status: &quot; + response_dict[&quot;status&quot;])<br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/FGTS/test_debt_fgts.py:630: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts.py::TestSimulationFGTS::test_post_debt_fgts_cdi_plus_price_days[administrator_header]</td>
+          <td class="col-duration">1.40</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.FGTS.test_debt_fgts.TestSimulationFGTS object at 0x7f305b570460&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/lego-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;ba99b7f1-3db6-4a63-a386-ba2c7f31e784&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_debt_fgts_cdi_plus_price_days = {&#x27;borrower&#x27;: {&#x27;address&#x27;: {&#x27;city&#x27;: &#x27;Ananindeua&#x27;, &#x27;complement&#x27;: &#x27;complemento&#x27;, &#x27;neighborhood&#x27;: &#x27;Águas Lindas&#x27;, &#x27;number&#x27;:...8-09&#x27;, &#x27;total_amount&#x27;: 400}, {&#x27;due_date&#x27;: &#x27;2023-08-09&#x27;, &#x27;total_amount&#x27;: 350}], &#x27;disbursement_date&#x27;: &#x27;2022-07-11&#x27;, ...}}<br/><br/>    def test_post_debt_fgts_cdi_plus_price_days(self, url, headers, payload_debt_fgts_cdi_plus_price_days):<br/>        endpoint = f&quot;{url}/debt_fgts&quot;<br/>        response = httpx.post(url=endpoint, headers=headers, json=payload_debt_fgts_cdi_plus_price_days, timeout=800)<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 201:<br/>            assert response.status_code == 201 and response_dict[&quot;status&quot;] == &quot;waiting_signature&quot;<br/>            print(&quot;\n Número do documento: &quot; + response_dict[&quot;data&quot;][&quot;borrower&quot;][&quot;document_number&quot;])<br/>            print(&quot;\n Nome do Cliente: &quot; + response_dict[&quot;data&quot;][&quot;borrower&quot;][&quot;name&quot;])<br/>            print(&quot;\n Data: &quot; + response_dict[&quot;event_datetime&quot;])<br/>            print(&quot;\n Chave: &quot; + response_dict[&quot;key&quot;])<br/>            print(&quot;\n Status: &quot; + response_dict[&quot;status&quot;])<br/>    <br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/FGTS/test_debt_fgts.py:692: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts.py::TestSimulationFGTS::test_post_debt_fgts_two_disbursement_bank_accounts[administrator_header]</td>
+          <td class="col-duration">0.27</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.FGTS.test_debt_fgts.TestSimulationFGTS object at 0x7f305b570220&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/lego-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;ba99b7f1-3db6-4a63-a386-ba2c7f31e784&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_debt_fgts_two_disbursement_bank_accounts = {&#x27;borrower&#x27;: {&#x27;address&#x27;: {&#x27;city&#x27;: &#x27;Ananindeua&#x27;, &#x27;complement&#x27;: &#x27;complemento&#x27;, &#x27;neighborhood&#x27;: &#x27;Águas Lindas&#x27;, &#x27;number&#x27;:...8-09&#x27;, &#x27;total_amount&#x27;: 400}, {&#x27;due_date&#x27;: &#x27;2023-08-09&#x27;, &#x27;total_amount&#x27;: 350}], &#x27;disbursement_date&#x27;: &#x27;2022-07-11&#x27;, ...}}<br/><br/>    def test_post_debt_fgts_two_disbursement_bank_accounts(self, url, headers, payload_debt_fgts_two_disbursement_bank_accounts):<br/>        endpoint = f&quot;{url}/debt_fgts&quot;<br/>        response = httpx.post(url=endpoint, headers=headers, json=payload_debt_fgts_two_disbursement_bank_accounts, timeout=500)<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 201:<br/>            assert response.status_code == 201 and response_dict[&quot;status&quot;] == &quot;waiting_signature&quot;<br/>            print(&quot;\n Número do documento: &quot; + response_dict[&quot;data&quot;][&quot;borrower&quot;][&quot;document_number&quot;])<br/>            print(&quot;\n Nome do Cliente: &quot; + response_dict[&quot;data&quot;][&quot;borrower&quot;][&quot;name&quot;])<br/>            print(&quot;\n Data: &quot; + response_dict[&quot;event_datetime&quot;])<br/>            print(&quot;\n Chave: &quot; + response_dict[&quot;key&quot;])<br/>            print(&quot;\n Status: &quot; + response_dict[&quot;status&quot;])<br/>    <br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/FGTS/test_debt_fgts.py:708: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_percentage[administrator_header]</td>
+          <td class="col-duration">7.84</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.FGTS.test_debt_fgts_negative.TestSimulationFGTS object at 0x7f305ba602b0&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/lego-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;ba99b7f1-3db6-4a63-a386-ba2c7f31e784&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_debt_fgts_invalid_percentage = {&#x27;borrower&#x27;: {&#x27;address&#x27;: {&#x27;city&#x27;: &#x27;Ananindeua&#x27;, &#x27;complement&#x27;: &#x27;complemento&#x27;, &#x27;neighborhood&#x27;: &#x27;Águas Lindas&#x27;, &#x27;number&#x27;:...8-09&#x27;, &#x27;total_amount&#x27;: 400}, {&#x27;due_date&#x27;: &#x27;2023-08-09&#x27;, &#x27;total_amount&#x27;: 350}], &#x27;disbursement_date&#x27;: &#x27;2022-07-11&#x27;, ...}}<br/><br/>    def test_post_debt_fgts_invalid_percentage(self, url, headers, payload_debt_fgts_invalid_percentage):<br/>        endpoint = f&quot;{url}/debt_fgts&quot;<br/>        response = httpx.post(url=endpoint, headers=headers, json=payload_debt_fgts_invalid_percentage, timeout=300)<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 400:<br/>            assert response.status_code == 400 and response_dict[&quot;code&quot;] == &quot;LEG000041&quot;<br/>            print(&quot;\n Erro: &quot; + response_dict[&quot;translation&quot;])<br/>    <br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/FGTS/test_debt_fgts_negative.py:1268: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_due_date[administrator_header]</td>
+          <td class="col-duration">0.30</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.FGTS.test_debt_fgts_negative.TestSimulationFGTS object at 0x7f305b6aa7c0&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/lego-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;ba99b7f1-3db6-4a63-a386-ba2c7f31e784&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_debt_fgts_invalid_due_date = {&#x27;borrower&#x27;: {&#x27;address&#x27;: {&#x27;city&#x27;: &#x27;Ananindeua&#x27;, &#x27;complement&#x27;: &#x27;complemento&#x27;, &#x27;neighborhood&#x27;: &#x27;Águas Lindas&#x27;, &#x27;number&#x27;:...ccb&#x27;, &#x27;desired_installments&#x27;: [{&#x27;due_date&#x27;: &#x27;21-08-09&#x27;, &#x27;total_amount&#x27;: 400}], &#x27;disbursement_date&#x27;: &#x27;2022-07-11&#x27;, ...}}<br/><br/>    def test_post_debt_fgts_invalid_due_date(self, url, headers, payload_debt_fgts_invalid_due_date):<br/>        endpoint = f&quot;{url}/debt_fgts&quot;<br/>        response = httpx.post(url=endpoint, headers=headers, json=payload_debt_fgts_invalid_due_date, timeout=300)<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 400:<br/>            assert response.status_code == 400 and response_dict[&quot;code&quot;] == &quot;LEG000041&quot;<br/>            print(&quot;\n Erro: &quot; + response_dict[&quot;translation&quot;])<br/>    <br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/FGTS/test_debt_fgts_negative.py:1280: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_cdi_perc[administrator_header]</td>
+          <td class="col-duration">0.93</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.FGTS.test_fgts_simulation.TestSimulationFGTS object at 0x7f305b597040&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/lego-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;bf623fcf-6e03-42b7-8664-55141c8acddb&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_fgts_simulation_cdi_perc = {&#x27;borrower&#x27;: {&#x27;person_type&#x27;: &#x27;natural&#x27;}, &#x27;financial&#x27;: {&#x27;annual_interest_rate&#x27;: 0.05, &#x27;credit_operation_type&#x27;: &#x27;cce&#x27;, &#x27;...8-09&#x27;, &#x27;total_amount&#x27;: 800}, {&#x27;due_date&#x27;: &#x27;2022-08-09&#x27;, &#x27;total_amount&#x27;: 758}], &#x27;disbursement_date&#x27;: &#x27;2032-07-09&#x27;, ...}}<br/><br/>    def test_post_fgts_simulation_cdi_perc(self, url, headers, payload_fgts_simulation_cdi_perc):<br/>        endpoint = f&quot;{url}/fgts_simulation&quot;<br/>        response = httpx.post(url=endpoint, headers=headers, json=payload_fgts_simulation_cdi_perc)<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 201:<br/>            assert response.status_code == 201 and response_dict[&quot;type&quot;] == &quot;debt&quot;<br/>            print(&quot;\n Data: &quot; + response_dict[&quot;event_datetime&quot;])<br/>            print(&quot;\n Key: &quot; + response_dict[&quot;key&quot;])<br/>            print(&quot;\n Status: &quot; + response_dict[&quot;status&quot;])<br/>    <br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/FGTS/test_fgts_simulation.py:337: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_cdi_plus_price_days[administrator_header]</td>
+          <td class="col-duration">0.36</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.FGTS.test_fgts_simulation.TestSimulationFGTS object at 0x7f305b6bfd30&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/lego-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;bf623fcf-6e03-42b7-8664-55141c8acddb&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_fgts_simulation_cdi_plus_price_days = {&#x27;borrower&#x27;: {&#x27;person_type&#x27;: &#x27;natural&#x27;}, &#x27;financial&#x27;: {&#x27;annual_interest_rate&#x27;: 0.05, &#x27;credit_operation_type&#x27;: &#x27;cce&#x27;, &#x27;...8-09&#x27;, &#x27;total_amount&#x27;: 800}, {&#x27;due_date&#x27;: &#x27;2022-08-09&#x27;, &#x27;total_amount&#x27;: 758}], &#x27;disbursement_date&#x27;: &#x27;2032-07-09&#x27;, ...}}<br/><br/>    def test_post_fgts_simulation_cdi_plus_price_days(self, url, headers, payload_fgts_simulation_cdi_plus_price_days):<br/>        endpoint = f&quot;{url}/fgts_simulation&quot;<br/>        response = httpx.post(url=endpoint, headers=headers, json=payload_fgts_simulation_cdi_plus_price_days)<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 201:<br/>            assert response.status_code == 201 and response_dict[&quot;type&quot;] == &quot;debt&quot;<br/>            print(&quot;\n Data: &quot; + response_dict[&quot;event_datetime&quot;])<br/>            print(&quot;\n Key: &quot; + response_dict[&quot;key&quot;])<br/>            print(&quot;\n Status: &quot; + response_dict[&quot;status&quot;])<br/>    <br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/FGTS/test_fgts_simulation.py:351: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_decode_qrcode.py::TestDecodeQrcode::test_post_decode_qrcode_not_found[administrator_header]</td>
+          <td class="col-duration">2.38</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.pix_transfer.test_decode_qrcode.TestDecodeQrcode object at 0x7f305b66e2b0&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/pix-transfer-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;585b84f8-271c-4515-af20-752ae1b9197f&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_qrcode_not_found = {&#x27;qr_code_payload&#x27;: &#x27;00020126580014BR.GOV.BCB.PIX0136fa08f292-183d-4e9a-84dd-b251f0ec4f295204000053039865406820.005802BR5925Wilker Santos de Oliveira6009SAO PAULO61080540900062070503***63041635&#x27;}<br/><br/>    def test_post_decode_qrcode_not_found(self, url, headers, payload_qrcode_not_found):<br/>        endpoint = f&quot;{url}/decode_qrcode&quot;<br/>        response = httpx.post(<br/>            url=endpoint, headers=headers, json=payload_qrcode_not_found<br/>        )<br/>        response_dict = response.json()<br/>    <br/>        if response.status_code == 404:<br/>            assert response.status_code == 404 and response_dict[&quot;title&quot;] == &quot;Not Found&quot;<br/>            print(&quot;\n Cod : &quot; + response_dict[&quot;code&quot;])<br/>            print(&quot;\n Erro : &quot; + response_dict[&quot;title&quot;])<br/>    <br/>        else:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>tests/integration/automation/pix_transfer/test_decode_qrcode.py:103: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_keys.py::TestPixKeys::test_get_pix_keys_unregistered[administrator_header]</td>
+          <td class="col-duration">2.44</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.pix_transfer.test_pix_keys.TestPixKeys object at 0x7f305b51f550&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/pix-keys-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;585b84f8-271c-4515-af20-752ae1b9197f&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/><br/>    def test_get_pix_keys_unregistered(self, url, headers):<br/>        endpoint = f&quot;{url}/pix/keys/batatinha_teste_email@contasapgar.com.br&quot;<br/>        response = httpx.get(url=endpoint, headers=headers)<br/>        response_dict = response.json()<br/>&gt;       assert response.status_code == 404<br/><span class="error">E       assert 422 == 404</span><br/><span class="error">E        +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code</span><br/><br/>tests/integration/automation/pix_transfer/test_pix_keys.py:85: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_keys.py::TestPixKeys::test_get_pix_keys_invalid[administrator_header]</td>
+          <td class="col-duration">2.47</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.pix_transfer.test_pix_keys.TestPixKeys object at 0x7f305b6aa790&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/pix-keys-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;585b84f8-271c-4515-af20-752ae1b9197f&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/><br/>    def test_get_pix_keys_invalid(self, url, headers):<br/>        endpoint = f&quot;{url}/pix/keys/batatinha&quot;<br/>        response = httpx.get(url=endpoint, headers=headers)<br/>        response_dict = response.json()<br/>&gt;       assert response.status_code == 400<br/><span class="error">E       assert 422 == 400</span><br/><span class="error">E        +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code</span><br/><br/>tests/integration/automation/pix_transfer/test_pix_keys.py:100: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferKey::test_post_pix_transfer_key_wrong_key[administrator_header]</td>
+          <td class="col-duration">2.54</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.integration.automation.pix_transfer.test_pix_transfer.TestPixTransferKey object at 0x7f305b60f3a0&gt;, url = &#x27;http://localhost:8001/api/v1/namespaces/default/services/pix-transfer-api-service/proxy&#x27;<br/>headers = {&#x27;Selected-Agent&#x27;: &#x27;585b84f8-271c-4515-af20-752ae1b9197f&#x27;, &#x27;natural-person-roles&#x27;: &#x27;{&quot;account&quot;: &quot;administrator&quot;}&#x27;}<br/>payload_pix_keys_wrong_key = {&#x27;account_key&#x27;: &#x27;f2ad0a86-3b1a-461c-8522-24469cd43b24&#x27;, &#x27;amount&#x27;: &#x27;0.10&#x27;, &#x27;message&#x27;: &#x27;&#x27;, &#x27;pix_key&#x27;: &#x27;batatinha@contasapgar.com.br&#x27;, ...}<br/><br/>    def test_post_pix_transfer_key_wrong_key(<br/>        self, url, headers, payload_pix_keys_wrong_key<br/>    ):<br/>        endpoint = f&quot;{url}/pix/transfer&quot;<br/>        response = httpx.post(<br/>            url=endpoint, headers=headers, json=payload_pix_keys_wrong_key<br/>        )<br/>        response_dict = response.json()<br/>&gt;       assert (<br/>            response.status_code == 404<br/>            and response_dict[&quot;title&quot;] == &quot;Pix Key is Unregistered&quot;<br/>        )<br/><span class="error">E       assert (422 == 404)</span><br/><span class="error">E        +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code</span><br/><br/>tests/integration/automation/pix_transfer/test_pix_transfer.py:254: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_available_balance.py::TestAvaibleBalanceFGTS::test_post_available_balance[administrator_header]</td>
+          <td class="col-duration">1.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Número de documento (CPF) : 04113929130
+
+ Data da consulta : 2022-01-31
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_available_balance.py::TestAvaibleBalanceFGTS::test_post_available_balance_erro_most_characters[administrator_header]</td>
+          <td class="col-duration">0.35</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: O número de documento 123456789012 é inválido ou está mal formatado. Use apenas dígitos.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_available_balance.py::TestAvaibleBalanceFGTS::test_post_available_balance_erro_least_characters[administrator_header]</td>
+          <td class="col-duration">0.60</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: O número de documento 1234567890 é inválido ou está mal formatado. Use apenas dígitos.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_available_balance.py::TestAvaibleBalanceFGTS::test_post_available_balance_erro_wrong_characters[administrator_header]</td>
+          <td class="col-duration">0.21</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: O número de documento 12345678ABC é inválido ou está mal formatado. Use apenas dígitos.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts.py::TestSimulationFGTS::test_post_debt_fgts_cdi_plus[administrator_header]</td>
+          <td class="col-duration">9.03</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Número do documento: 41651732825
+
+ Nome do Cliente: Patrícia Tereza Bernardes
+
+ Data: 2022-01-31 02:32:26
+
+ Chave: 093b8ff7-b39e-4461-ac5c-4f3adb571269
+
+ Status: waiting_signature
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts.py::TestSimulationFGTS::test_post_debt_fgts_pre_sac[administrator_header]</td>
+          <td class="col-duration">7.27</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Número do documento: 41651732825
+
+ Nome do Cliente: Patrícia Tereza Bernardes
+
+ Data: 2022-01-31 02:32:35
+
+ Chave: 24a36299-b78b-49a1-bd87-55b0d06bf6b6
+
+ Status: waiting_signature
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts.py::TestSimulationFGTS::test_post_debt_fgts_pre_price[administrator_header]</td>
+          <td class="col-duration">2.45</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Número do documento: 41651732825
+
+ Nome do Cliente: Patrícia Tereza Bernardes
+
+ Data: 2022-01-31 02:32:38
+
+ Chave: 9393ddb0-a5bb-44de-afdb-a1bed6c2b020
+
+ Status: waiting_signature
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts.py::TestSimulationFGTS::test_post_debt_fgts_pre_price_days[administrator_header]</td>
+          <td class="col-duration">6.64</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Número do documento: 41651732825
+
+ Nome do Cliente: Patrícia Tereza Bernardes
+
+ Data: 2022-01-31 02:32:44
+
+ Chave: 75662606-5127-4fbd-863b-d0af9cac1444
+
+ Status: waiting_signature
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_person_type[administrator_header]</td>
+          <td class="col-duration">0.33</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;fisica&#x27; is not one of [&#x27;legal&#x27;, &#x27;natural&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/borrower/properties/person_type/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_birth_date[administrator_header]</td>
+          <td class="col-duration">0.30</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;10-05-06&#x27; does not match &#x27;^([\\\\+-]?\\\\d{4}(?!\\\\d{2}\\\\b))((-?)((0[1-9]|1[0-2])(\\\\3([12]\\\\d|0[1-9]|3[01]))?|W([0-4]\\\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\\\d|[12]\\\\d{2}|3([0-5]\\\\d|6[1-6])))([T\\\\s]((([01]\\\\d|2[0-3])((:?)[0-5]\\\\d)?|24\\\\:?00)([\\\\.,]\\\\d+(?!:))?)?(\\\\17[0-5]\\\\d([\\\\.,]\\\\d+)?)?([zZ]|([\\\\+-])([01]\\\\d|2[0-3]):?([0-5]\\\\d)?)?)?)?$&#x27;&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/borrower/allOf/0/if/then/properties/birth_date/pattern&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_email[administrator_header]</td>
+          <td class="col-duration">0.35</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &#x27;\&#x27;patricia.tereza@\&#x27; does not match \&#x27;(?:[A-Za-z0-9!#$%&amp;\\\&#x27;*+/=?^_`{|}~-]+(?:\\\\.[A-Za-z0-9!#$%&amp;\\\&#x27;*+/=?^_`{|}~-]+)*|&quot;(?:[\\\\x01-\\\\x08\\\\x0b\\\\x0c\\\\x0e-\\\\x1f\\\\x21\\\\x23-\\\\x5b\\\\x5d-\\\\x7f]|\\\\\\\\[\\\\x01-\\\\x09\\\\x0b\\\\x0c\\\\x0e-\\\\x7f])*&quot;)@(?:(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\\\.)+[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?|\\\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[A-Za-z0-9-]*[A-Za-z0-9]:(?:[\\\\x01-\\\\x08\\\\x0b\\\\x0c\\\\x0e-\\\\x1f\\\\x21-\\\\x5a\\\\x53-\\\\x7f]|\\\\\\\\[\\\\x01-\\\\x09\\\\x0b\\\\x0c\\\\x0e-\\\\x7f])+)\\\\])\&#x27;&#x27;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/borrower/properties/email/pattern&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_interest_type[administrator_header]</td>
+          <td class="col-duration">0.54</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;plus&#x27; is not one of [&#x27;cdi_plus&#x27;, &#x27;cdi_perc&#x27;, &#x27;pre_sac&#x27;, &#x27;pre_price&#x27;, &#x27;pre_price_days&#x27;, &#x27;cdi_plus_price_days&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/financial/properties/interest_type/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_disbursement_date[administrator_header]</td>
+          <td class="col-duration">0.29</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;20-07-11&#x27; does not match &#x27;^([\\\\+-]?\\\\d{4}(?!\\\\d{2}\\\\b))((-?)((0[1-9]|1[0-2])(\\\\3([12]\\\\d|0[1-9]|3[01]))?|W([0-4]\\\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\\\d|[12]\\\\d{2}|3([0-5]\\\\d|6[1-6])))([T\\\\s]((([01]\\\\d|2[0-3])((:?)[0-5]\\\\d)?|24\\\\:?00)([\\\\.,]\\\\d+(?!:))?)?(\\\\17[0-5]\\\\d([\\\\.,]\\\\d+)?)?([zZ]|([\\\\+-])([01]\\\\d|2[0-3]):?([0-5]\\\\d)?)?)?)?$&#x27;&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/financial/properties/disbursement_date/pattern&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_interest_base[administrator_header]</td>
+          <td class="col-duration">0.31</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;calendar&#x27; is not one of [&#x27;calendar_days&#x27;, &#x27;workdays&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/financial/properties/fine_configuration/properties/interest_base/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_credit_operation_type[administrator_header]</td>
+          <td class="col-duration">0.44</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;cc&#x27; is not one of [&#x27;ccb&#x27;, &#x27;cce&#x27;, &#x27;cci&#x27;, &#x27;nce&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/financial/properties/credit_operation_type/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_invalid_bank_code[administrator_header]</td>
+          <td class="col-duration">1.09</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: Conta de desembolso inválida para a institução: 999
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_too_short_account_number[administrator_header]</td>
+          <td class="col-duration">0.30</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;1&#x27; is too short&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/disbursement_bank_accounts/items/properties/bank_code/minLength&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_too_long_account_number[administrator_header]</td>
+          <td class="col-duration">0.33</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;1234&#x27; is too long&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/disbursement_bank_accounts/items/properties/bank_code/maxLength&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_too_short_document_number[administrator_header]</td>
+          <td class="col-duration">0.30</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;41652825&#x27; is too short&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/disbursement_bank_accounts/items/properties/document_number/oneOf/0/minLength&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_too_long_document_number[administrator_header]</td>
+          <td class="col-duration">0.34</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &quot;&#x27;4165173282512344&#x27; is too long&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/disbursement_bank_accounts/items/properties/document_number/oneOf/0/maxLength&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_under100_percentage_receivable[administrator_header]</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: A soma percentage_receivable de todas as disbursement_bank_accounts deve ser 100 se foi definida para todas as contas enviadas
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_debt_fgts_negative.py::TestSimulationFGTS::test_post_debt_fgts_greater100_percentage_receivable[administrator_header]</td>
+          <td class="col-duration">0.32</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Erro: {&#x27;message&#x27;: &#x27;110 is greater than the maximum of 100&#x27;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/disbursement_bank_accounts/items/properties/percentage_receivable/maximum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_cdi_plus[administrator_header]</td>
+          <td class="col-duration">1.35</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Data: 2022-01-31 02:33:02
+
+ Key: d11f9f42-5895-42e9-a608-5a4d9b50476e
+
+ Status: finished
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_pre_sac[administrator_header]</td>
+          <td class="col-duration">0.96</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Data: 2022-01-31 02:33:04
+
+ Key: 854280ee-3ed9-47f8-85b3-bc794abb1738
+
+ Status: finished
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_pre_price[administrator_header]</td>
+          <td class="col-duration">0.98</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Data: 2022-01-31 02:33:05
+
+ Key: f512c77d-9012-4228-8dd3-7e3e582448a0
+
+ Status: finished
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_pre_price_days[administrator_header]</td>
+          <td class="col-duration">1.14</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Data: 2022-01-31 02:33:06
+
+ Key: 9f2bff8a-8166-47bb-bf66-662c0ca3526e
+
+ Status: finished
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_impossible_settler[administrator_header]</td>
+          <td class="col-duration">1.21</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Mensagem de erro: Impossível de quitar operação com as parcelas enviadas.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_past_disbursement_date[administrator_header]</td>
+          <td class="col-duration">0.60</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Mensagem de erro: data de desembolso não pode estar no passado
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_wrong_person_type[administrator_header]</td>
+          <td class="col-duration">0.33</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Mensagem de erro: {&#x27;message&#x27;: &quot;&#x27;juridica&#x27; is not one of [&#x27;legal&#x27;, &#x27;natural&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/borrower/properties/person_type/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_wrong_interest_type[administrator_header]</td>
+          <td class="col-duration">0.32</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Mensagem de erro: {&#x27;message&#x27;: &quot;&#x27;cdi_&#x27; is not one of [&#x27;cdi_plus&#x27;, &#x27;cdi_perc&#x27;, &#x27;pre_sac&#x27;, &#x27;pre_price&#x27;, &#x27;pre_price_days&#x27;, &#x27;cdi_plus_price_days&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/financial/properties/interest_type/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_wrong_interest_base[administrator_header]</td>
+          <td class="col-duration">0.36</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Mensagem de erro: {&#x27;message&#x27;: &quot;&#x27;dias_uteis&#x27; is not one of [&#x27;calendar_days&#x27;, &#x27;workdays&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/financial/properties/fine_configuration/properties/interest_base/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_fgts_simulation.py::TestSimulationFGTS::test_post_fgts_simulation_wrong_credit_operation_type[administrator_header]</td>
+          <td class="col-duration">0.30</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Mensagem de erro: {&#x27;message&#x27;: &quot;&#x27;abc&#x27; is not one of [&#x27;ccb&#x27;, &#x27;cce&#x27;, &#x27;cci&#x27;, &#x27;nce&#x27;]&quot;, &#x27;reasons&#x27;: [], &#x27;path&#x27;: &#x27;/properties/financial/properties/credit_operation_type/enum&#x27;}
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_generate_receipt.py::TestReserveBalance::test_get_generate_receipt_pdf_true[administrator_header]</td>
+          <td class="col-duration">2.65</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_generate_receipt.py::TestReserveBalance::test_get_generate_receipt_pdf_false[administrator_header]</td>
+          <td class="col-duration">1.03</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_generate_receipt.py::TestReserveBalance::test_get_generate_receipt_not_found[administrator_header]</td>
+          <td class="col-duration">0.30</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>A chave reservation_request_key 6ea273d8-f99b-4f65-a2e7-e380da757e76 não pode ser encontrada.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_reserve_balance.py::TestReserveBalance::test_delete_reserve_balance[administrator_header]</td>
+          <td class="col-duration">0.90</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>Os servidores da Caixa retornaram um erro.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_reserve_balance.py::TestReserveBalance::test_delete_reserve_balance_status_opened[administrator_header]</td>
+          <td class="col-duration">0.71</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>Status opened da operação de crédito não permite desaverbação. Por favor, cancele a operação primeiro.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/FGTS/test_reserve_balance.py::TestReserveBalance::test_delete_reserve_balance_not_found[administrator_header]</td>
+          <td class="col-duration">0.31</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>A chave reservation_request_key 6ea273d8-f99b-4f65-a2e7-e380da757e76 não pode ser encontrada.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_decode_qrcode.py::TestDecodeQrcode::test_post_decode_qrcode[administrator_header]</td>
+          <td class="col-duration">0.95</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Chave Pix : f617156f-94d5-4a68-879f-95cc5a50e802
+
+ Nome : Melo industrias SA
+
+ Número documento : 27984018000121
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_decode_qrcode.py::TestDecodeQrcode::test_post_decode_qrcode_mail[administrator_header]</td>
+          <td class="col-duration">0.99</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Chave Pix : cetiler847@gruppies.com
+
+ Nome : Melo industrias SA
+
+ Número documento : 27984018000121
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_decode_qrcode.py::TestDecodeQrcode::test_post_decode_qrcode_invalid[administrator_header]</td>
+          <td class="col-duration">0.70</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Cod : PAYLOAD_INVALIDO
+
+ Erro : Not Acceptable
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_decode_qrcode.py::TestDecodeQrcode::test_post_decode_qrcode_bad_request[administrator_header]</td>
+          <td class="col-duration">0.69</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Cod : QIT000400
+
+ Erro : Bad Request
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_generate_qrcode.py::Testgenerateqrcode::test_post_generate_qrcode[administrator_header]</td>
+          <td class="col-duration">1.81</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_generate_qrcode.py::Testgenerateqrcode::test_post_generate_qrcode_invalid_permission[administrator_header]</td>
+          <td class="col-duration">0.63</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>Mensagem:Pessoa 9af15369-4e8f-4668-9766-d3065e1bda95 não tem credencial de administrador para a conta 100b475e-29e2-42ad-b5ec-53499470ce8d.
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_generate_qrcode.py::Testgenerateqrcode::test_post_generate_qrcode_mail_payload[administrator_header_mail-administrator_header]</td>
+          <td class="col-duration">1.22</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_generate_qrcode.py::Testgenerateqrcode::test_post_generate_qrcode_mail_image[administrator_header_mail-administrator_header]</td>
+          <td class="col-duration">1.67</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_keys.py::TestPixKeys::test_get_pix_keys_email[administrator_header]</td>
+          <td class="col-duration">0.90</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Conta de retorno : 09661Tywin Lannister45783565660
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_keys.py::TestPixKeys::test_get_pix_keys_cpf[administrator_header]</td>
+          <td class="col-duration">0.66</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Conta de retorno : 94134Wilker Teste04113929130
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_keys.py::TestPixKeys::test_get_pix_keys_aleatoria_escrow[administrator_header]</td>
+          <td class="col-duration">0.65</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Conta de retorno : 05506QI SCD S.A.00061122233344escrow
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferManual::test_post_pix_transfer_manual[administrator_header]</td>
+          <td class="col-duration">1.04</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Status da transação : pending_approval
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferManual::test_post_pix_transfer_manual_wrong_amount[administrator_header]</td>
+          <td class="col-duration">0.35</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Status da transação : Valor decimal inválido, enviado abc
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferManual::test_post_pix_from_escrow[administrator_header_escrow-administrator_header]</td>
+          <td class="col-duration">0.60</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Status da transação : pending_approval
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferManual::test_post_pix_from_escrow_wrong_user[administrator_header]</td>
+          <td class="col-duration">0.44</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Status da transação : Usuário não tem autorização para fazer essa transação
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferKey::test_post_pix_transfer_key_email[administrator_header]</td>
+          <td class="col-duration">0.87</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Status da transação : pending_approval
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferKey::test_post_pix_transfer_key_random[administrator_header]</td>
+          <td class="col-duration">0.76</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Status da transação : pending_approval
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/integration/automation/pix_transfer/test_pix_transfer.py::TestPixTransferKey::test_post_pix_transfer_key_wrong_amount[administrator_header]</td>
+          <td class="col-duration">0.29</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>
+ Status da transação : Valor decimal inválido, enviado $
+<br/></div></td></tr></tbody></table></body></html>
